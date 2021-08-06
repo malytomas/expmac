@@ -89,7 +89,7 @@ string convertLine(const string line, const std::pair<const string, Replacement>
 {
 	CAGE_LOG(SeverityEnum::Info, "expmac", stringizer() + "converting line: " + line);
 
-	const string tmpName = stringizer() + currentThreadId() + ".tmp";
+	const string tmpName = stringizer() + currentThreadId() + ".tmpline";
 	Holder<File> f = writeFile(tmpName);
 	f->writeLine(stringizer() + "#define " + replacement.first + replacement.second.params + " " + replacement.second.value);
 	f->writeLine(line);
@@ -100,6 +100,7 @@ string convertLine(const string line, const std::pair<const string, Replacement>
 	Holder<Process> p = newProcess(cfg);
 	if (p->wait() != 0)
 		CAGE_THROW_ERROR(Exception, "compiler processing returned error");
+	pathRemove(tmpName);
 	auto res = p->readAll();
 	Holder<LineReader> lr = newLineReader(res);
 	string l, out;
@@ -132,8 +133,9 @@ void processFile(const string &path)
 		return;
 	}
 
+	const string tmpName = overwrite ? stringizer() + currentThreadId() + ".tmpfile" : path + ".replacement";
 	Holder<File> input = readFile(path);
-	Holder<File> output = writeFile(path + ".replacement");
+	Holder<File> output = writeFile(tmpName);
 
 	string line;
 	while (input->readLine(line))
@@ -144,8 +146,12 @@ void processFile(const string &path)
 
 	input->close();
 	output->close();
+
 	if (overwrite)
-		pathMove(path + ".replacement", path);
+	{
+		pathRemove(path);
+		pathMove(tmpName, path);
+	}
 
 	CAGE_LOG(SeverityEnum::Info, "expmac", "file done");
 }
