@@ -4,3 +4,8 @@ target_link_libraries(expmac cage-core)
 cage_ide_category(expmac expmac)
 cage_ide_sort_files(expmac)
 cage_ide_working_dir_in_place(expmac)
+
+foreach(conf IN ITEMS ${CMAKE_CONFIGURATION_TYPES} ${CMAKE_BUILD_TYPE})
+	string(TOUPPER ${conf} conf_upper)
+	configure_file("${CMAKE_CURRENT_LIST_DIR}/expmac.in.ini" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_${conf_upper}}/expmac.ini")
+endforeach(conf)
