@@ -1,0 +1,6 @@
+file(GLOB_RECURSE expmac-sources "*")
+add_executable(expmac ${expmac-sources})
+target_link_libraries(expmac cage-core)
+cage_ide_category(expmac expmac)
+cage_ide_sort_files(expmac)
+cage_ide_working_dir_in_place(expmac)
