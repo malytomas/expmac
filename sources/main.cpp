@@ -72,6 +72,7 @@ void loadReplacements(const string &path)
 		replacements[a] = { b, c };
 	}
 	ini->checkUnused();
+	CAGE_LOG(SeverityEnum::Info, "expmac", stringizer() + "loaded " + replacements.size() + " replacements");
 	if (replacements.empty())
 		CAGE_THROW_ERROR(Exception, "no macros loaded");
 }
@@ -112,14 +113,23 @@ string convertLine(const string line, const std::pair<const string, Replacement>
 		out += l;
 	}
 
+	CAGE_LOG(SeverityEnum::Info, "expmac", stringizer() + "line converted to: " + out);
 	return out;
 }
 
-string processLine(const string line)
+bool lineIsPreprocessor(string line)
 {
+	line = trim(line);
+	return !line.empty() && line[0] == '#';
+}
+
+string processLine(string line)
+{
+	if (lineIsPreprocessor(line))
+		return line;
 	for (const auto &it : replacements)
 		if (isPattern(line, "", it.first, ""))
-			return convertLine(line, it);
+			line = convertLine(line, it);
 	return line;
 }
 
@@ -195,6 +205,8 @@ int main(int argc, const char *args[])
 		overwrite = ini->cmdBool('o', "overwrite", false);
 		if (overwrite)
 			CAGE_LOG(SeverityEnum::Info, "expmac", "input files will be overwritten");
+		else
+			CAGE_LOG(SeverityEnum::Info, "expmac", "replacement files will be created next to original files");
 
 		loadReplacements(ini->cmdString('r', "replacements", "replacements.ini"));
 
