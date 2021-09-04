@@ -14,19 +14,19 @@ using namespace cage;
 
 struct Replacement
 {
-	string params;
-	string value;
+	String params;
+	String value;
 };
 
-std::map<string, Replacement> replacements;
-std::vector<string> extensionsWhitelist = { ".h", ".hpp", ".c", ".cpp" };
-string command;
+std::map<String, Replacement> replacements;
+std::vector<String> extensionsWhitelist = { ".h", ".hpp", ".c", ".cpp" };
+String command;
 bool overwrite = false;
 
-string convertCompilerPath(const string &path)
+String convertCompilerPath(const String &path)
 {
 #ifdef CAGE_SYSTEM_WINDOWS
-	return stringizer() + "\"" + replace(path, "/", "\\") + "\"";
+	return Stringizer() + "\"" + replace(path, "/", "\\") + "\"";
 #else
 	return replace(path, " ", "\\ ");
 #endif // CAGE_SYSTEM_WINDOWS
@@ -37,62 +37,62 @@ void loadConfiguration()
 	Holder<Ini> ini = configGenerateIni("expmac");
 
 #ifdef CAGE_SYSTEM_WINDOWS
-	const string cmdArgs = "/E";
+	const String cmdArgs = "/E";
 #else
-	const string cmdArgs = "-E";
+	const String cmdArgs = "-E";
 #endif // CAGE_SYSTEM_WINDOWS
 	command = convertCompilerPath(ini->getString("compiler", "path")) + " " + ini->getString("compiler", "arguments", cmdArgs) + " ";
-	CAGE_LOG(SeverityEnum::Info, "expmac", stringizer() + "compiler command: " + command);
+	CAGE_LOG(SeverityEnum::Info, "expmac", Stringizer() + "compiler command: " + command);
 
 	const auto exts = ini->values("extensions");
 	if (!exts.empty())
 	{
 		extensionsWhitelist.clear();
-		for (const string &s : exts)
+		for (const String &s : exts)
 			extensionsWhitelist.push_back(s);
 	}
-	for (const string &e : extensionsWhitelist)
-		CAGE_LOG(SeverityEnum::Info, "expmac", stringizer() + "whitelisted extension: " + e);
+	for (const String &e : extensionsWhitelist)
+		CAGE_LOG(SeverityEnum::Info, "expmac", Stringizer() + "whitelisted extension: " + e);
 }
 
-void loadReplacements(const string &path)
+void loadReplacements(const String &path)
 {
 	Holder<Ini> ini = newIni();
 	ini->importFile(path);
-	for (const string &s : ini->sections())
+	for (const String &s : ini->sections())
 	{
-		const string a = ini->getString(s, "macro");
-		const string b = ini->getString(s, "params");
-		const string c = replace(ini->getString(s, "value"), "$", "#");
+		const String a = ini->getString(s, "macro");
+		const String b = ini->getString(s, "params");
+		const String c = replace(ini->getString(s, "value"), "$", "#");
 		if (replacements.find(a) != replacements.end())
 		{
-			CAGE_LOG_THROW(stringizer() + "macro: " + a);
+			CAGE_LOG_THROW(Stringizer() + "macro: " + a);
 			CAGE_THROW_ERROR(Exception, "duplicate macro name");
 		}
 		replacements[a] = { b, c };
 	}
 	ini->checkUnused();
-	CAGE_LOG(SeverityEnum::Info, "expmac", stringizer() + "loaded " + replacements.size() + " replacements");
+	CAGE_LOG(SeverityEnum::Info, "expmac", Stringizer() + "loaded " + replacements.size() + " replacements");
 	if (replacements.empty())
 		CAGE_THROW_ERROR(Exception, "no macros loaded");
 }
 
-bool testWhitelisted(const string &path)
+bool testWhitelisted(const String &path)
 {
-	const string ext = toLower(pathExtractExtension(path));
+	const String ext = toLower(pathExtractExtension(path));
 	for (const auto &w : extensionsWhitelist)
 		if (ext == w)
 			return true;
 	return false;
 }
 
-string convertLine(const string line, const std::pair<const string, Replacement> &replacement)
+String convertLine(const String line, const std::pair<const String, Replacement> &replacement)
 {
-	CAGE_LOG(SeverityEnum::Info, "expmac", stringizer() + "converting line: " + line);
+	CAGE_LOG(SeverityEnum::Info, "expmac", Stringizer() + "converting line: " + line);
 
-	const string tmpName = stringizer() + currentThreadId() + ".tmpline";
+	const String tmpName = Stringizer() + currentThreadId() + ".tmpline";
 	Holder<File> f = writeFile(tmpName);
-	f->writeLine(stringizer() + "#define " + replacement.first + replacement.second.params + " " + replacement.second.value);
+	f->writeLine(Stringizer() + "#define " + replacement.first + replacement.second.params + " " + replacement.second.value);
 	f->writeLine(line);
 	f->close();
 
@@ -104,7 +104,7 @@ string convertLine(const string line, const std::pair<const string, Replacement>
 	pathRemove(tmpName);
 	auto res = p->readAll();
 	Holder<LineReader> lr = newLineReader(res);
-	string l, out;
+	String l, out;
 	lr->readLine(l); // skip first line - the one with #define
 	while (lr->readLine(l))
 	{
@@ -113,17 +113,17 @@ string convertLine(const string line, const std::pair<const string, Replacement>
 		out += l;
 	}
 
-	CAGE_LOG(SeverityEnum::Info, "expmac", stringizer() + "line converted to: " + out);
+	CAGE_LOG(SeverityEnum::Info, "expmac", Stringizer() + "line converted to: " + out);
 	return out;
 }
 
-bool lineIsPreprocessor(string line)
+bool lineIsPreprocessor(String line)
 {
 	line = trim(line);
 	return !line.empty() && line[0] == '#';
 }
 
-string processLine(string line)
+String processLine(String line)
 {
 	if (lineIsPreprocessor(line))
 		return line;
@@ -133,9 +133,9 @@ string processLine(string line)
 	return line;
 }
 
-void processFile(const string &path)
+void processFile(const String &path)
 {
-	CAGE_LOG(SeverityEnum::Info, "expmac", stringizer() + "processing file: " + path);
+	CAGE_LOG(SeverityEnum::Info, "expmac", Stringizer() + "processing file: " + path);
 	
 	if (!testWhitelisted(path))
 	{
@@ -143,11 +143,11 @@ void processFile(const string &path)
 		return;
 	}
 
-	const string tmpName = overwrite ? stringizer() + currentThreadId() + ".tmpfile" : path + ".replacement";
+	const String tmpName = overwrite ? Stringizer() + currentThreadId() + ".tmpfile" : path + ".replacement";
 	Holder<File> input = readFile(path);
 	Holder<File> output = writeFile(tmpName);
 
-	string line;
+	String line;
 	while (input->readLine(line))
 	{
 		line = processLine(line);
@@ -166,11 +166,11 @@ void processFile(const string &path)
 	CAGE_LOG(SeverityEnum::Info, "expmac", "file done");
 }
 
-void processPath(const string &path);
+void processPath(const String &path);
 
-void processDirectory(const string &path)
+void processDirectory(const String &path)
 {
-	CAGE_LOG(SeverityEnum::Info, "expmac", stringizer() + "processing directory: " + path);
+	CAGE_LOG(SeverityEnum::Info, "expmac", Stringizer() + "processing directory: " + path);
 	Holder<DirectoryList> list = newDirectoryList(path);
 	while (list->valid())
 	{
@@ -179,14 +179,14 @@ void processDirectory(const string &path)
 	}
 }
 
-void processPath(const string &path)
+void processPath(const String &path)
 {
 	const PathTypeFlags flags = pathType(path);
 	if (any(flags & PathTypeFlags::File))
 		return processFile(path);
 	if (any(flags & (PathTypeFlags::Directory | PathTypeFlags::Archive)))
 		return processDirectory(path);
-	CAGE_LOG_THROW(stringizer() + "path: " + path);
+	CAGE_LOG_THROW(Stringizer() + "path: " + path);
 	CAGE_THROW_ERROR(Exception, "invalid path");
 }
 
@@ -217,7 +217,7 @@ int main(int argc, const char *args[])
 		ini->checkUnused();
 		ini.clear();
 
-		for (const string &p : paths)
+		for (const String &p : paths)
 			processPath(pathToAbs(p));
 
 		CAGE_LOG(SeverityEnum::Info, "expmac", "all done");
